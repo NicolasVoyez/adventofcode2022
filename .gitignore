@@ -1,0 +1,28 @@
+
+# Visual Studio generated and user-specific files
+obj/
+bin/
+.vs/
+_ReSharper.*/
+*.user
+*.sln.docstates
+*.suo
+*.docstates
+*.vs10x
+
+# Scripts
+/script/.setup/
+
+# NuGet repositories and packages
+/.nuget/
+/logs/
+packages/
+*.nupkg
+
+# Criteo Build System
+/.cbs/
+/cbs.log
+.build/
+
+# Test results
+/reports/
