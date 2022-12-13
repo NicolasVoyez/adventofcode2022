@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 
 namespace AdventOfCode2022.Helpers
 {
@@ -55,6 +56,11 @@ namespace AdventOfCode2022.Helpers
                     return hash;
                 }
             }
+
+            public override string ToString()
+            {
+                return $"({X},{Y}) : {Value}";
+            }
         }
         // Y,X
         private readonly T[,] _innerGrid;
@@ -98,6 +104,8 @@ namespace AdventOfCode2022.Helpers
                 }
             }
         }
+        internal int Count(Func<Cell<T>, bool> countPredicate) => All().Count(countPredicate);
+        internal int Count(Func<T, bool> countPredicate) => All().Count(c => countPredicate(c.Value));
 
 
         public IEnumerable<Cell<T>> Around(Cell<T> cell, bool withDiagonals = true)
@@ -108,7 +116,7 @@ namespace AdventOfCode2022.Helpers
         {
             if (y > 0)
             {
-                if (withDiagonals && x > 0 )
+                if (withDiagonals && x > 0)
                     yield return this[y - 1, x - 1];
                 yield return this[y - 1, x];
                 if (withDiagonals && x < XMax - 1)
@@ -131,20 +139,22 @@ namespace AdventOfCode2022.Helpers
             }
         }
 
-        public IEnumerable<Cell<T>> GetFirstInEachDirection(int y, int x, Predicate<T> condition)
+        public IEnumerable<Cell<T>> GetFirstInEachDirection(int y, int x, Predicate<T> condition, Func<int, int ,Cell<T>> defaultCtor = null, bool noDiagonal = false)
         {
             for (int dy = -1; dy <= 1; dy++)
                 for (int dx = -1; dx <= 1; dx++)
                 {
                     if (dx == 0 && dy == 0)
                         continue;
-                    var cell = FindInDirection(y, x, dy, dx, condition);
+                    if (noDiagonal && dx != 0 && dy != 0)
+                        continue;
+                    var cell = FindInDirection(y, x, dy, dx, condition, defaultCtor);
                     if (cell.HasValue)
                         yield return cell.Value;
                 }
         }
 
-        private Cell<T>? FindInDirection(int y, int x, int dy, int dx, Predicate<T> condition)
+        private Cell<T>? FindInDirection(int y, int x, int dy, int dx, Predicate<T> condition, Func<int, int, Cell<T>> defaultCtor)
         {
             while (true)
             {
@@ -152,10 +162,35 @@ namespace AdventOfCode2022.Helpers
                 x += dx;
 
                 if (y < 0 || x < 0 || y > YMax - 1 || x > XMax - 1)
-                    return null;
+                    return defaultCtor == null ? null : defaultCtor(x,y);
 
                 if (condition(_innerGrid[y, x]))
                     return this[y, x];
+            }
+        }
+
+        public void ForEachPerRow(Action<Cell<T>> action, bool reverseOrder = false)
+        {
+            for (int y = 0; y < YMax; y++)
+            {
+                if (reverseOrder)
+                    for (int x = XMax -1; x >= 0; x--)
+                        action(this[y, x]);
+                else 
+                    for (int x = 0; x < XMax; x++)
+                        action(this[y, x]);
+            }
+        }
+        public void ForEachPerColumn(Action<Cell<T>> action, bool reverseOrder = false)
+        {
+            for (int x = 0; x < XMax; x++)
+            {
+                if (reverseOrder)
+                    for (int y = YMax - 1; y >= 0; y--)
+                        action(this[y, x]);
+                else
+                    for (int y = 0; y < YMax; y++)
+                        action(this[y, x]);
             }
         }
 
@@ -189,5 +224,6 @@ namespace AdventOfCode2022.Helpers
             Console.WriteLine();
             Console.WriteLine();
         }
+
     }
 }

@@ -4,6 +4,13 @@ using System.Text;
 
 namespace AdventOfCode2022.Helpers
 {
+    public enum Direction
+    {
+        Right,
+        Left,   
+        Up,
+        Down
+    }
     public struct Point
     {
         public int Y { get; }
@@ -30,7 +37,32 @@ namespace AdventOfCode2022.Helpers
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            unchecked
+            {
+                return X.GetHashCode() ^ 27 * Y.GetHashCode();
+            }
+        }
+
+        public override string ToString()
+        {
+            return X + " " + Y;
+        }
+
+        public Point ToDirection(Direction d, int qty = 1)
+        {
+            return d switch
+            {
+                Direction.Right => new Point(Y, X + qty),
+                Direction.Left => new Point(Y, X - qty),
+                Direction.Up => new Point( Y + qty, X),
+                Direction.Down => new Point( Y - qty, X),
+                _ => throw new ArgumentException("not a direction"),
+            };
+        }
+
+        internal int ManhattanDistance(Point other)
+        {
+            return Math.Abs(Y- other.Y) + Math.Abs(X- other.X);
         }
     }
 
