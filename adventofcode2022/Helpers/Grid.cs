@@ -85,6 +85,26 @@ namespace AdventOfCode2022.Helpers
                 }
             }
         }
+        public Grid(string grid, Func<char, T> transform, T completeWith)
+        {
+            var splitContent = grid.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+            YMax = splitContent.Length;
+            XMax = splitContent[0].Length;
+
+            _innerGrid = new T[YMax, XMax];
+
+            for (int y = 0; y < YMax; y++)
+            {
+                for (int x = 0; x < XMax; x++)
+                {
+                    if (splitContent[y].Length <= x)
+                        _innerGrid[y, x] = completeWith;
+                    else
+                        _innerGrid[y, x] = transform(splitContent[y][x]);
+                }
+            }
+        }
 
 
         public Grid(T[,] grid, int yMax, int xMax)
@@ -107,6 +127,49 @@ namespace AdventOfCode2022.Helpers
         internal int Count(Func<Cell<T>, bool> countPredicate) => All().Count(countPredicate);
         internal int Count(Func<T, bool> countPredicate) => All().Count(c => countPredicate(c.Value));
 
+        public Cell<T>? GetNext(Direction d, Cell<T> cell, bool wrap = false, Func<int, int, Cell<T>> defaultCtor = null)
+        {
+            switch (d)
+            {
+                case Direction.Right:
+                    var newX = cell.X + 1; 
+                    if (newX > XMax - 1)
+                    {
+                        if (!wrap)
+                            return defaultCtor == null ? null : defaultCtor(newX, cell.Y);
+                        newX = 0;
+                    }
+                    return this[cell.Y, newX];
+                case Direction.Left:
+                    newX = cell.X -1;
+                    if (newX < 0)
+                    {
+                        if (!wrap)
+                            return defaultCtor == null ? null : defaultCtor(newX, cell.Y);
+                        newX = XMax - 1;
+                    }
+                    return this[cell.Y, newX];
+                case Direction.Up:
+                    var newY = cell.Y - 1;
+                    if (newY < 0)
+                    {
+                        if (!wrap)
+                            return defaultCtor == null ? null : defaultCtor(cell.X, newY);
+                        newY = YMax - 1;
+                    }
+                    return this[newY, cell.X];
+                case Direction.Down:
+                    newY = cell.Y + 1;
+                    if (newY > YMax -1)
+                    {
+                        if (!wrap)
+                            return defaultCtor == null ? null : defaultCtor(cell.X, newY);
+                        newY = 0;
+                    }
+                    return this[newY, cell.X];
+            }
+            throw new Exception("Should never happen");
+        }
 
         public IEnumerable<Cell<T>> Around(Cell<T> cell, bool withDiagonals = true)
         {
@@ -154,15 +217,34 @@ namespace AdventOfCode2022.Helpers
                 }
         }
 
-        private Cell<T>? FindInDirection(int y, int x, int dy, int dx, Predicate<T> condition, Func<int, int, Cell<T>> defaultCtor)
+        public Cell<T>? FindInDirection(Cell<T> cell, Direction dir, Predicate<T> condition, Func<int, int, Cell<T>> defaultCtor = null, bool wrap = false)
         {
+            var dx = dir == Direction.Right ? 1 : (dir == Direction.Left ? -1 : 0);
+            var dy = dir == Direction.Up ? -1 : (dir == Direction.Down ? 1 : 0);
+            return FindInDirection(cell.Y, cell.X, dy, dx, condition, defaultCtor, wrap);
+        }
+
+        private Cell<T>? FindInDirection(int y, int x, int dy, int dx, Predicate<T> condition, Func<int, int, Cell<T>> defaultCtor, bool wrap = false)
+        {
+            int startY = y;
+            int startX = x;
             while (true)
             {
                 y += dy;
                 x += dx;
 
-                if (y < 0 || x < 0 || y > YMax - 1 || x > XMax - 1)
+                if (!wrap && (y < 0 || x < 0 || y > YMax - 1 || x > XMax - 1))
                     return defaultCtor == null ? null : defaultCtor(x,y);
+                if (wrap)
+                {
+                    if (y < 0) y = YMax - 1;
+                    if (x < 0) x = XMax - 1;
+                    if (y > YMax - 1) y = 0;
+                    if (x > XMax - 1) x = 0;
+
+                    if (y ==  startY && x == startX)
+                        return defaultCtor == null ? null : defaultCtor(x, y);
+                }
 
                 if (condition(_innerGrid[y, x]))
                     return this[y, x];
